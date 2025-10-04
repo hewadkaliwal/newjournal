@@ -1,3 +1,4 @@
+
 document.addEventListener('DOMContentLoaded', () => {
     // --- DOM Elements ---
     const sidebar = document.getElementById('sidebar');
@@ -15,12 +16,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const newFolderBtn = document.getElementById('new-folder-btn');
 
     // --- Trades View Elements ---
+    // FIX: Cast to HTMLTableSectionElement to access table-specific methods.
     const tradesTableBody = document.getElementById('trades-table-body') as HTMLTableSectionElement;
     const tradesEmptyState = document.getElementById('trades-empty-state');
     const addTradeForm = document.getElementById('add-trade-form');
     const saveTradeBtn = document.getElementById('save-trade-btn');
+    // FIX: Cast to HTMLInputElement to access value property.
     const searchInput = document.getElementById('trade-search-input') as HTMLInputElement;
+    // FIX: Cast to HTMLInputElement to access value property.
     const dateStartInput = document.getElementById('trade-date-start') as HTMLInputElement;
+    // FIX: Cast to HTMLInputElement to access value property.
     const dateEndInput = document.getElementById('trade-date-end') as HTMLInputElement;
     const resetFiltersBtn = document.getElementById('reset-filters-btn');
 
@@ -32,6 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const statWinRate = document.getElementById('stat-win-rate');
     const statBestTrade = document.getElementById('stat-best-trade');
     const statWorstTrade = document.getElementById('stat-worst-trade');
+    // FIX: Cast to HTMLTableSectionElement to access table-specific methods.
     const recentTradesTbody = document.getElementById('recent-trades-tbody') as HTMLTableSectionElement;
     const analyticsTitle = document.getElementById('analytics-title');
     const analyticsEmptyState = document.getElementById('analytics-empty-state');
@@ -53,6 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const exportCsvBtn = document.getElementById('export-csv-btn');
     const exportPdfBtn = document.getElementById('export-pdf-btn');
     const copyCsvBtn = document.getElementById('copy-csv-btn');
+    // FIX: Cast to HTMLInputElement to access files property.
     const importFileInput = document.getElementById('import-file-input') as HTMLInputElement;
 
     // --- Calendar View Elements ---
@@ -66,64 +73,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalOverlay = document.getElementById('modal-overlay');
     const nameModal = document.getElementById('name-modal');
     const deleteModal = document.getElementById('delete-modal');
-    let contextTarget: { type: 'journal' | 'folder', id: string } | null = null;
-    let modalState: { type: 'rename' | 'new-folder' | 'delete', targetType: 'journal' | 'folder', targetId: string } | null = null;
-
-    // --- Interfaces ---
-    interface Trade {
-        id: string;
-        date: string; // YYYY-MM-DD
-        market: string;
-        session: string;
-        direction: 'Long' | 'Short';
-        wl: 'Win' | 'Loss';
-        r: number | null;
-        pl: number;
-        comment: string;
-        tag: string;
-    }
-
-    interface JournalSettingItem {
-        name: string;
-        color: string;
-    }
-
-    interface JournalSettings {
-        markets: JournalSettingItem[];
-        sessions: JournalSettingItem[];
-        tags: JournalSettingItem[];
-    }
-    
-    interface Journal {
-        id: string;
-        name: string;
-        color: string;
-        folderId: string | null;
-        trades: Trade[];
-        settings: JournalSettings;
-    }
-
-    interface Folder {
-        id: string;
-        name: string;
-        color: string;
-        collapsed: boolean;
-    }
-
-    interface AppState {
-        journals: Journal[];
-        folders: Folder[];
-        activeJournalId: string | null;
-        sidebarCollapsed: boolean;
-        activeView: string;
-    }
+    let contextTarget = null;
+    let modalState = null;
 
     // --- State Management ---
-    let appState: AppState;
-    let calendarDate: Date = new Date();
-    let draggedJournalId: string | null = null;
+    let appState;
+    let calendarDate = new Date();
+    let draggedJournalId = null;
 
-    const DEFAULT_STATE: AppState = {
+    const DEFAULT_STATE = {
         journals: [],
         folders: [],
         activeJournalId: null,
@@ -139,9 +97,9 @@ document.addEventListener('DOMContentLoaded', () => {
         appState.journals.forEach(journal => {
             if (journal.settings && journal.settings.markets && journal.settings.markets.length > 0 && typeof journal.settings.markets[0] === 'string') {
                 const defaultColors = ['#ef4444', '#3b82f6', '#f97316', '#16a34a', '#8b5cf6', '#eab308'];
-                journal.settings.markets = (journal.settings.markets as unknown as string[]).map((m, i) => ({ name: m, color: defaultColors[i % defaultColors.length] }));
-                journal.settings.sessions = (journal.settings.sessions as unknown as string[]).map((s, i) => ({ name: s, color: defaultColors[(i+1) % defaultColors.length] }));
-                journal.settings.tags = (journal.settings.tags as unknown as string[]).map((t, i) => ({ name: t, color: defaultColors[(i+2) % defaultColors.length] }));
+                journal.settings.markets = journal.settings.markets.map((m, i) => ({ name: m, color: defaultColors[i % defaultColors.length] }));
+                journal.settings.sessions = journal.settings.sessions.map((s, i) => ({ name: s, color: defaultColors[(i+1) % defaultColors.length] }));
+                journal.settings.tags = journal.settings.tags.map((t, i) => ({ name: t, color: defaultColors[(i+2) % defaultColors.length] }));
             }
         });
     };
@@ -151,18 +109,19 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // --- Helper & Formatting Functions ---
-    const getSettingItem = (type: 'market' | 'session' | 'tag', name: string): JournalSettingItem | undefined => {
+    const getSettingItem = (type, name) => {
         const activeJournal = appState.journals.find(j => j.id === appState.activeJournalId);
         if (!activeJournal || !name) return undefined;
-        const settingsKey = `${type}s` as keyof JournalSettings;
+        const settingsKey = `${type}s`;
         return activeJournal.settings[settingsKey].find(item => item.name === name);
     };
 
-    const formatCurrency = (value: number) => {
+    const formatCurrency = (value) => {
         return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
     };
 
-    const populateSelect = (elementId: string, options: string[], selectedValue?: string) => {
+    const populateSelect = (elementId, options, selectedValue) => {
+        // FIX: Cast to HTMLSelectElement to access value property.
         const select = document.getElementById(elementId) as HTMLSelectElement;
         if (!select) return;
         const currentVal = select.value;
@@ -176,7 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
         select.value = selectedValue || currentVal || options[0];
     };
     
-    const getMonday = (d: Date) => {
+    const getMonday = (d) => {
         d = new Date(d);
         const day = d.getDay();
         const diff = d.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
@@ -201,6 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </button>
                 </div>`;
             
+            // FIX: Cast to HTMLElement to access style property.
             (folderEl.querySelector('.folder-toggle') as HTMLElement).style.color = folder.color;
 
             const journalListEl = document.createElement('ul');
@@ -215,7 +175,7 @@ document.addEventListener('DOMContentLoaded', () => {
         appState.journals.filter(j => j.folderId === null).forEach(j => uncategorizedJournalsList.appendChild(createJournalElement(j)));
     };
 
-    const createJournalElement = (journal: Journal): HTMLLIElement => {
+    const createJournalElement = (journal) => {
         const li = document.createElement('li');
         li.className = 'journal-item';
         if (journal.id === appState.activeJournalId) {
@@ -241,9 +201,13 @@ document.addEventListener('DOMContentLoaded', () => {
              return;
         }
 
-        populateSelect('add-market', activeJournal.settings.markets.map(m => m.name));
-        populateSelect('add-session', activeJournal.settings.sessions.map(s => s.name));
-        populateSelect('add-tag', activeJournal.settings.tags.map(t => t.name));
+        // FIX: Add missing third argument to function call.
+        populateSelect('add-market', activeJournal.settings.markets.map(m => m.name), undefined);
+        // FIX: Add missing third argument to function call.
+        populateSelect('add-session', activeJournal.settings.sessions.map(s => s.name), undefined);
+        // FIX: Add missing third argument to function call.
+        populateSelect('add-tag', activeJournal.settings.tags.map(t => t.name), undefined);
+        // FIX: Cast to HTMLInputElement to access valueAsDate property.
         (document.getElementById('add-date') as HTMLInputElement).valueAsDate = new Date();
 
         const searchTerm = searchInput.value.toLowerCase();
@@ -262,7 +226,7 @@ document.addEventListener('DOMContentLoaded', () => {
         tradesTableBody.innerHTML = '';
         if (filteredTrades.length === 0) {
             tradesEmptyState?.classList.remove('hidden');
-            (document.getElementById('add-trade-form') as HTMLTableSectionElement).style.visibility = 'visible';
+            document.getElementById('add-trade-form').style.visibility = 'visible';
         } else {
             tradesEmptyState?.classList.add('hidden');
             filteredTrades.forEach((trade, index) => {
@@ -301,7 +265,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        dashboardTitle!.textContent = `${journal.name} - Dashboard`;
+        dashboardTitle.textContent = `${journal.name} - Dashboard`;
 
         if (journal.trades.length === 0) {
             dashboardEmptyState?.classList.remove('hidden');
@@ -312,18 +276,18 @@ document.addEventListener('DOMContentLoaded', () => {
         dashboardContent.classList.remove('hidden');
         
         const stats = calculateStats(journal.trades);
-        statTotalPl!.textContent = formatCurrency(stats.totalPl);
-        statTotalPl!.className = `stat-value ${stats.totalPl >= 0 ? 'pl-positive' : 'pl-negative'}`;
-        statWinRate!.textContent = `${stats.winRate.toFixed(1)}%`;
-        statBestTrade!.textContent = formatCurrency(stats.bestTrade);
-        statWorstTrade!.textContent = formatCurrency(stats.worstTrade);
+        statTotalPl.textContent = formatCurrency(stats.totalPl);
+        statTotalPl.className = `stat-value ${stats.totalPl >= 0 ? 'pl-positive' : 'pl-negative'}`;
+        statWinRate.textContent = `${stats.winRate.toFixed(1)}%`;
+        statBestTrade.textContent = formatCurrency(stats.bestTrade);
+        statWorstTrade.textContent = formatCurrency(stats.worstTrade);
 
         // Render Recent Trades
-        recentTradesTbody!.innerHTML = '';
+        recentTradesTbody.innerHTML = '';
         journal.trades.slice().sort((a,b) => b.date.localeCompare(a.date)).slice(0, 5).forEach(trade => {
             const plClass = trade.pl >= 0 ? 'pl-positive' : 'pl-negative';
             const plSign = trade.pl >= 0 ? '+' : '';
-            const row = recentTradesTbody!.insertRow();
+            const row = recentTradesTbody.insertRow();
             row.innerHTML = `
                 <td>${trade.date}</td>
                 <td>${trade.market}</td>
@@ -347,12 +311,14 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        analyticsTitle!.textContent = `${journal.name} - Analytics`;
+        analyticsTitle.textContent = `${journal.name} - Analytics`;
 
-        populateSelect('analytics-market-filter', ['All Markets', ...journal.settings.markets.map(m => m.name)]);
-        populateSelect('analytics-session-filter', ['All Sessions', ...journal.settings.sessions.map(s => s.name)]);
-        populateSelect('analytics-tag-filter', ['All Trade Types', ...journal.settings.tags.map(t => t.name)]);
+        // FIX: Add missing third argument to function calls.
+        populateSelect('analytics-market-filter', ['All Markets', ...journal.settings.markets.map(m => m.name)], undefined);
+        populateSelect('analytics-session-filter', ['All Sessions', ...journal.settings.sessions.map(s => s.name)], undefined);
+        populateSelect('analytics-tag-filter', ['All Trade Types', ...journal.settings.tags.map(t => t.name)], undefined);
 
+        // FIX: Cast elements to HTMLSelectElement to access value property.
         const marketFilter = (document.getElementById('analytics-market-filter') as HTMLSelectElement).value;
         const sessionFilter = (document.getElementById('analytics-session-filter') as HTMLSelectElement).value;
         const tagFilter = (document.getElementById('analytics-tag-filter') as HTMLSelectElement).value;
@@ -374,7 +340,7 @@ document.addEventListener('DOMContentLoaded', () => {
         analyticsContent.classList.remove('hidden');
 
         const stats = calculateStats(filteredTrades);
-        const metricsGrid = document.getElementById('metrics-grid')!;
+        const metricsGrid = document.getElementById('metrics-grid');
         metricsGrid.innerHTML = `
             ${createMetricItem('Total Trades', stats.totalTrades)}
             ${createMetricItem('Win Rate', `${stats.winRate.toFixed(1)}%`)}
@@ -420,7 +386,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     
         const journal = appState.journals.find(j => j.id === appState.activeJournalId);
-        const tradesByDate: Record<string, number> = {};
+        // FIX: Add explicit type for tradesByDate to allow numeric operations.
+        const tradesByDate: { [key: string]: number } = {};
         if (journal) {
             journal.trades.forEach(trade => {
                 if (!tradesByDate[trade.date]) tradesByDate[trade.date] = 0;
@@ -455,7 +422,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const monthlyTotal = monthlyTrades.reduce((sum, trade) => sum + trade.pl, 0);
         
-        const pnlByWeek: Record<string, number> = {};
+        const pnlByWeek = {};
         monthlyTrades.forEach(trade => {
             const tradeDate = new Date(trade.date + 'T00:00:00');
             const monday = getMonday(tradeDate);
@@ -470,7 +437,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 const monday = new Date(mondayStr + 'T00:00:00');
                 const sunday = new Date(monday);
                 sunday.setDate(monday.getDate() + 6);
-                const pnlClass = pnl >= 0 ? 'pl-positive' : 'pl-negative';
+                // FIX: Cast pnl to number to allow comparison.
+                const pnlClass = (pnl as number) >= 0 ? 'pl-positive' : 'pl-negative';
+                // FIX: Add explicit type for dateOptions to satisfy toLocaleDateString.
                 const dateOptions: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
                 const weekLabel = `${monday.toLocaleDateString('en-US', dateOptions)} - ${sunday.toLocaleDateString('en-US', dateOptions)}`;
                 return `
@@ -505,10 +474,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const activeJournal = appState.journals.find(j => j.id === appState.activeJournalId);
         if (!settingsModal || !activeJournal) return;
 
-        const renderList = (type: 'market' | 'session' | 'tag') => {
+        const renderList = (type) => {
             const listEl = document.getElementById(`${type}s-list`);
             if (!listEl) return;
-            const settingsKey = `${type}s` as keyof JournalSettings;
+            const settingsKey = `${type}s`;
             listEl.innerHTML = '';
             activeJournal.settings[settingsKey].forEach(item => {
                 const itemEl = document.createElement('div');
@@ -519,11 +488,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     <button class="delete-setting-btn" data-type="${type}" data-name="${item.name}" aria-label="Delete ${item.name}">&times;</button>
                 `;
 
+                // FIX: Cast to HTMLInputElement to access properties like value, dataset, and methods like blur.
                 const nameInput = itemEl.querySelector('.settings-item-name') as HTMLInputElement;
                 const colorInput = itemEl.querySelector('.settings-item-color') as HTMLInputElement;
 
                 const handleUpdate = () => {
-                    const originalName = nameInput.dataset.originalName!;
+                    const originalName = nameInput.dataset.originalName;
                     const newName = nameInput.value.trim();
                     const newColor = colorInput.value;
                     const originalItem = activeJournal.settings[settingsKey].find(i => i.name === originalName);
@@ -548,12 +518,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 nameInput.addEventListener('blur', handleUpdate);
                 nameInput.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter') nameInput.blur();
+                    // FIX: Cast event to KeyboardEvent to access key property.
+                    if ((e as KeyboardEvent).key === 'Enter') nameInput.blur();
                 });
                 colorInput.addEventListener('change', handleUpdate);
 
                 itemEl.querySelector('.delete-setting-btn')?.addEventListener('click', (e) => {
-                    const nameToDelete = (e.currentTarget as HTMLElement).dataset.name!;
+                    // FIX: Cast currentTarget to HTMLElement to access dataset.
+                    const nameToDelete = (e.currentTarget as HTMLElement).dataset.name;
                     deleteSettingItem(type, nameToDelete);
                 });
                 listEl.appendChild(itemEl);
@@ -567,7 +539,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // --- CRUD and Actions ---
     const addJournal = () => {
-        const newJournal: Journal = {
+        const newJournal = {
             id: `j${Date.now()}`,
             name: `New Journal ${appState.journals.length + 1}`,
             color: '#3b82f6',
@@ -597,44 +569,47 @@ document.addEventListener('DOMContentLoaded', () => {
         renderCurrentView();
     };
     
-    const addFolder = (name: string) => {
-        const newFolder: Folder = { id: `f${Date.now()}`, name: name, color: '#888888', collapsed: false };
+    const addFolder = (name) => {
+        const newFolder = { id: `f${Date.now()}`, name: name, color: '#888888', collapsed: false };
         appState.folders.push(newFolder);
         saveState();
         renderSidebar();
     };
 
     const addTrade = () => {
-        const newTrade: Partial<Trade> = {
+        const newTrade = {
             id: `t${Date.now()}`,
+            // FIX: Cast elements to access value property.
             date: (document.getElementById('add-date') as HTMLInputElement).value,
             market: (document.getElementById('add-market') as HTMLSelectElement).value,
             session: (document.getElementById('add-session') as HTMLSelectElement).value,
-            direction: (document.getElementById('add-direction') as HTMLSelectElement).value as 'Long' | 'Short',
-            wl: (document.getElementById('add-wl') as HTMLSelectElement).value as 'Win' | 'Loss',
+            direction: (document.getElementById('add-direction') as HTMLSelectElement).value,
+            wl: (document.getElementById('add-wl') as HTMLSelectElement).value,
             r: parseFloat((document.getElementById('add-r') as HTMLInputElement).value) || null,
             pl: parseFloat((document.getElementById('add-pl') as HTMLInputElement).value),
             comment: (document.getElementById('add-comment') as HTMLInputElement).value,
             tag: (document.getElementById('add-tag') as HTMLSelectElement).value,
         };
 
-        if (!newTrade.date || isNaN(newTrade.pl!)) {
+        if (!newTrade.date || isNaN(newTrade.pl)) {
             alert('Date and P/L are required.');
             return;
         }
 
         const activeJournal = appState.journals.find(j => j.id === appState.activeJournalId);
         if (activeJournal) {
-            activeJournal.trades.push(newTrade as Trade);
+            activeJournal.trades.push(newTrade);
             saveState();
             renderTradesView();
+            // FIX: Cast to HTMLFormElement to access reset method.
             (addTradeForm as HTMLFormElement).reset();
+            // FIX: Cast to HTMLInputElement to access valueAsDate property.
             (document.getElementById('add-date') as HTMLInputElement).valueAsDate = new Date();
 
         }
     };
     
-    const deleteTrade = (tradeId: string) => {
+    const deleteTrade = (tradeId) => {
         const activeJournal = appState.journals.find(j => j.id === appState.activeJournalId);
         if (activeJournal) {
             activeJournal.trades = activeJournal.trades.filter(t => t.id !== tradeId);
@@ -644,14 +619,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    const setActiveJournal = (journalId: string) => {
+    const setActiveJournal = (journalId) => {
         appState.activeJournalId = journalId;
         saveState();
         renderSidebar();
         renderCurrentView();
     };
     
-    const toggleFolder = (folderId: string) => {
+    const toggleFolder = (folderId) => {
         const folder = appState.folders.find(f => f.id === folderId);
         if (folder) {
             folder.collapsed = !folder.collapsed;
@@ -660,7 +635,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     
-    const updateItemName = (type: 'journal' | 'folder', id: string, newName: string, newColor?: string) => {
+    const updateItemName = (type, id, newName, newColor) => {
         if (type === 'journal') {
             const journal = appState.journals.find(j => j.id === id);
             if(journal) {
@@ -679,7 +654,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderCurrentView(); 
     };
 
-    const deleteItem = (type: 'journal' | 'folder', id: string, options?: { folderDeleteOption: 'folder-only' | 'folder-and-pages' }) => {
+    const deleteItem = (type, id, options) => {
         if (type === 'journal') {
             appState.journals = appState.journals.filter(j => j.id !== id);
             if (appState.activeJournalId === id) {
@@ -698,10 +673,10 @@ document.addEventListener('DOMContentLoaded', () => {
         renderCurrentView();
     }
 
-    const addSettingItem = (type: 'market' | 'session' | 'tag', name: string, color: string) => {
+    const addSettingItem = (type, name, color) => {
         const activeJournal = appState.journals.find(j => j.id === appState.activeJournalId);
         if (!activeJournal || !name) return;
-        const settingsKey = `${type}s` as keyof JournalSettings;
+        const settingsKey = `${type}s`;
         if (activeJournal.settings[settingsKey].some(item => item.name.toLowerCase() === name.toLowerCase())) {
             alert(`${type.charAt(0).toUpperCase() + type.slice(1)} already exists.`);
             return;
@@ -712,11 +687,11 @@ document.addEventListener('DOMContentLoaded', () => {
         renderCurrentView();
     };
 
-    const updateSettingItem = (type: 'market' | 'session' | 'tag', oldName: string, newName: string, newColor: string): boolean => {
+    const updateSettingItem = (type, oldName, newName, newColor) => {
         const activeJournal = appState.journals.find(j => j.id === appState.activeJournalId);
         if (!activeJournal) return false;
 
-        const settingsKey = `${type}s` as keyof JournalSettings;
+        const settingsKey = `${type}s`;
         const settingsList = activeJournal.settings[settingsKey];
 
         if (oldName.toLowerCase() !== newName.toLowerCase() && settingsList.some(i => i.name.toLowerCase() === newName.toLowerCase())) {
@@ -729,8 +704,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (oldName !== newName) {
             activeJournal.trades.forEach(trade => {
-                if ((trade as any)[type] === oldName) {
-                    (trade as any)[type] = newName;
+                if (trade[type] === oldName) {
+                    trade[type] = newName;
                 }
             });
         }
@@ -743,10 +718,10 @@ document.addEventListener('DOMContentLoaded', () => {
         return true;
     };
 
-    const deleteSettingItem = (type: 'market' | 'session' | 'tag', name: string) => {
+    const deleteSettingItem = (type, name) => {
         const activeJournal = appState.journals.find(j => j.id === appState.activeJournalId);
         if (!activeJournal) return;
-        const settingsKey = `${type}s` as keyof JournalSettings;
+        const settingsKey = `${type}s`;
         activeJournal.settings[settingsKey] = activeJournal.settings[settingsKey].filter(item => item.name !== name);
         saveState();
         renderSettingsModal();
@@ -754,7 +729,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // --- Analytics Helpers ---
-    const calculateStats = (trades: Trade[]) => {
+    const calculateStats = (trades) => {
         const totalTrades = trades.length;
         if (totalTrades === 0) {
             return { totalPl: 0, winRate: 0, bestTrade: 0, worstTrade: 0, totalWins: 0, totalLosses: 0, profitFactor: 0, expectancy: 0, avgWin: 0, avgLoss: 0, winStreak: 0, lossStreak: 0, avgR: 0, totalTrades: 0 };
@@ -792,13 +767,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
         const validRTrades = trades.filter(t => t.r !== null && typeof t.r === 'number');
-        const avgR = validRTrades.length > 0 ? validRTrades.reduce((sum, t) => sum + t.r!, 0) / validRTrades.length : 0;
+        const avgR = validRTrades.length > 0 ? validRTrades.reduce((sum, t) => sum + t.r, 0) / validRTrades.length : 0;
 
         return { totalPl, winRate, bestTrade, worstTrade, totalWins: wins.length, totalLosses: losses.length, profitFactor, expectancy, avgWin, avgLoss, winStreak, lossStreak, avgR, totalTrades };
     };
 
-    const getWeeklyPnl = (trades: Trade[]) => {
-        const pnlByWeek: Record<string, number> = {};
+    const getWeeklyPnl = (trades) => {
+        const pnlByWeek = {};
         trades.forEach(trade => {
             const date = new Date(trade.date);
             const firstDayOfWeek = new Date(date.setDate(date.getDate() - date.getDay())).toISOString().split('T')[0];
@@ -808,7 +783,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return Object.entries(pnlByWeek).map(([label, value]) => ({ label, value })).sort((a,b) => a.label.localeCompare(b.label));
     };
 
-    const renderLongShortStats = (trades: Trade[]) => {
+    const renderLongShortStats = (trades) => {
         const longTrades = trades.filter(t => t.direction === 'Long');
         const shortTrades = trades.filter(t => t.direction === 'Short');
         const longStats = calculateStats(longTrades);
@@ -836,14 +811,14 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
     };
     
-    const createMetricItem = (title: string, value: string | number) => `
+    const createMetricItem = (title, value) => `
         <div class="metric-item">
             <div class="metric-title">${title}</div>
             <div class="metric-value">${value}</div>
         </div>
     `;
 
-    const getEquityCurve = (trades: Trade[]): {label: string, value: number}[] => {
+    const getEquityCurve = (trades) => {
         if (trades.length === 0) return [];
         let runningTotal = 0;
         return trades
@@ -855,10 +830,10 @@ document.addEventListener('DOMContentLoaded', () => {
             });
     };
 
-    const getBreakdown = (trades: Trade[], key: keyof Trade) => {
-        const breakdown: Record<string, Trade[]> = {};
+    const getBreakdown = (trades, key) => {
+        const breakdown = {};
         trades.forEach(trade => {
-            const value = trade[key] as string || 'N/A';
+            const value = trade[key] || 'N/A';
             if (!breakdown[value]) breakdown[value] = [];
             breakdown[value].push(trade);
         });
@@ -868,7 +843,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }).sort((a,b) => b.totalPl - a.totalPl);
     };
 
-    const renderBreakdownTable = (elementId: string, data: ReturnType<typeof getBreakdown>) => {
+    const renderBreakdownTable = (elementId, data) => {
         const container = document.getElementById(elementId);
         if (!container) return;
         
@@ -902,7 +877,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // --- Charting Functions ---
-    const renderBarChart = (elementId: string, data: { label: string; value: number }[]) => {
+    const renderBarChart = (elementId, data) => {
         const container = document.getElementById(elementId);
         if (!container) return;
         container.innerHTML = '';
@@ -919,9 +894,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const yMin = Math.min(0, ...data.map(d => d.value));
         
         const bandWidth = (width - margin.left - margin.right) / data.length;
-        const xScale = (index: number) => margin.left + index * bandWidth;
+        const xScale = (index) => margin.left + index * bandWidth;
         
-        const yScale = (val: number) => {
+        const yScale = (val) => {
             const totalRange = yMax - yMin;
             if (totalRange === 0) return height - margin.bottom;
             return height - margin.bottom - ((val - yMin) / totalRange) * (height - margin.top - margin.bottom);
@@ -986,7 +961,7 @@ document.addEventListener('DOMContentLoaded', () => {
         container.appendChild(svg);
     };
 
-    const renderLineChart = (elementId: string, data: { label: string; value: number }[]) => {
+    const renderLineChart = (elementId, data) => {
         const container = document.getElementById(elementId);
         if (!container) return;
         container.innerHTML = '';
@@ -1003,8 +978,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const yMax = Math.max(...allValues, 0);
         const yMin = Math.min(...allValues, 0);
 
-        const xScale = (index: number) => margin.left + (width - margin.left - margin.right) * (index / (data.length - 1));
-        const yScale = (val: number) => {
+        const xScale = (index) => margin.left + (width - margin.left - margin.right) * (index / (data.length - 1));
+        const yScale = (val) => {
             const totalRange = yMax - yMin;
             if (totalRange === 0) return height / 2;
             return height - margin.bottom - ((val - yMin) / totalRange) * (height - margin.top - margin.bottom);
@@ -1099,7 +1074,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // --- Modal & Context Menu Logic ---
-    const showModal = (modalElement: HTMLElement | null) => {
+    const showModal = (modalElement) => {
         modalOverlay?.classList.remove('hidden');
         modalElement?.classList.remove('hidden');
     };
@@ -1111,17 +1086,17 @@ document.addEventListener('DOMContentLoaded', () => {
         settingsModal?.classList.add('hidden');
     };
 
-    const showContextMenu = (e: MouseEvent, type: 'journal' | 'folder', id: string) => {
+    const showContextMenu = (e, type, id) => {
         e.preventDefault();
         e.stopPropagation();
         contextTarget = { type, id };
-        contextMenu!.style.top = `${e.clientY}px`;
-        contextMenu!.style.left = `${e.clientX}px`;
-        contextMenu!.classList.remove('hidden');
+        contextMenu.style.top = `${e.clientY}px`;
+        contextMenu.style.left = `${e.clientX}px`;
+        contextMenu.classList.remove('hidden');
     };
 
     // --- Data Management ---
-     const exportData = (format: 'json' | 'csv') => {
+     const exportData = (format) => {
         const journal = appState.journals.find(j => j.id === appState.activeJournalId);
         if (!journal || journal.trades.length === 0) {
             alert("No trades to export.");
@@ -1150,17 +1125,23 @@ document.addEventListener('DOMContentLoaded', () => {
         URL.revokeObjectURL(link.href);
     };
     
-    const importData = (file: File) => {
+    const importData = (file) => {
         const reader = new FileReader();
         reader.onload = (event) => {
             try {
-                const content = event.target?.result as string;
+                const content = event.target?.result;
                 const journal = appState.journals.find(j => j.id === appState.activeJournalId);
                 if (!journal) return;
                 
-                let newTrades: Trade[];
+                let newTrades;
                 if (file.name.endsWith('.json')) {
-                    newTrades = JSON.parse(content);
+                    // FIX: Ensure content is a string before parsing.
+                    if (typeof content === 'string') {
+                        newTrades = JSON.parse(content);
+                    } else {
+                         alert('Error reading file content.');
+                         return;
+                    }
                 } else {
                     alert('Unsupported file type. Please use JSON.');
                     return;
@@ -1219,7 +1200,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.addEventListener('click', () => contextMenu?.classList.add('hidden'));
 
         // --- Navigation & View Routing ---
-        const navigateToView = (viewName: string) => {
+        const navigateToView = (viewName) => {
             const validViews = ['dashboard', 'trades', 'analytics', 'calendar'];
             const targetView = validViews.includes(viewName) ? viewName : 'dashboard';
 
@@ -1231,9 +1212,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Update nav links UI
             navLinks.forEach(link => {
-                if (link instanceof HTMLElement) {
-                    link.classList.toggle('active', link.dataset.view === targetView);
-                }
+                // FIX: Cast link to HTMLElement to access dataset.
+                link.classList.toggle('active', (link as HTMLElement).dataset.view === targetView);
             });
 
             // Update view container visibility
@@ -1255,6 +1235,7 @@ document.addEventListener('DOMContentLoaded', () => {
         navLinks.forEach(link => {
             link.addEventListener('click', (e) => {
                 e.preventDefault();
+                // FIX: Cast currentTarget to HTMLElement to access dataset.
                 const viewName = (e.currentTarget as HTMLElement).dataset.view;
                 if (viewName) {
                     // Setting the hash will trigger the 'hashchange' listener
@@ -1284,43 +1265,47 @@ document.addEventListener('DOMContentLoaded', () => {
         newFolderBtn?.addEventListener('click', (e) => {
             e.stopPropagation(); // Prevent potential event bubbling issues
             modalState = { type: 'new-folder', targetType: 'folder', targetId: '' };
-            (document.getElementById('name-modal-title') as HTMLElement).textContent = "Create New Folder";
+            document.getElementById('name-modal-title').textContent = "Create New Folder";
+            // FIX: Cast to HTMLFormElement to access reset method.
             (document.getElementById('name-modal-form') as HTMLFormElement).reset();
-            (document.getElementById('name-modal-color-wrapper') as HTMLElement).classList.add('hidden');
+            document.getElementById('name-modal-color-wrapper').classList.add('hidden');
             showModal(nameModal);
-            (document.getElementById('name-modal-input') as HTMLInputElement).focus();
+            document.getElementById('name-modal-input').focus();
         });
 
         sidebarNav?.addEventListener('click', (e) => {
-            const journalItem = (e.target as HTMLElement).closest('.journal-item');
-            const folderHeader = (e.target as HTMLElement).closest('.folder-header');
-            const contextBtn = (e.target as HTMLElement).closest('.context-menu-btn');
+            // FIX: Cast e.target to HTMLElement to access closest method.
+            const target = e.target as HTMLElement;
+            const journalItem = target.closest('.journal-item');
+            const folderHeader = target.closest('.folder-header');
+            const contextBtn = target.closest('.context-menu-btn');
             
             if (contextBtn) {
-                const type = (contextBtn as HTMLElement).dataset.type as 'journal' | 'folder';
-                const id = (contextBtn as HTMLElement).dataset.id!;
-                showContextMenu(e as MouseEvent, type, id);
+                const type = (contextBtn as HTMLElement).dataset.type;
+                const id = (contextBtn as HTMLElement).dataset.id;
+                showContextMenu(e, type, id);
                 return;
             }
 
             if (journalItem) {
-                setActiveJournal((journalItem as HTMLElement).dataset.journalId!);
+                setActiveJournal((journalItem as HTMLElement).dataset.journalId);
             } else if (folderHeader) {
-                toggleFolder((folderHeader.parentElement as HTMLElement).dataset.folderId!);
+                toggleFolder((folderHeader.parentElement as HTMLElement).dataset.folderId);
             }
         });
 
         // --- Sidebar Drag & Drop ---
         sidebarNav?.addEventListener('dragstart', (e) => {
             const journalItem = (e.target as HTMLElement).closest('.journal-item');
-            if (journalItem && journalItem instanceof HTMLElement) {
-                draggedJournalId = journalItem.dataset.journalId!;
+            if (journalItem) {
+                draggedJournalId = (journalItem as HTMLElement).dataset.journalId;
                 setTimeout(() => journalItem.classList.add('dragging'), 0);
             }
         });
 
         sidebarNav?.addEventListener('dragend', (e) => {
-            const journalItem = (e.target as HTMLElement);
+            // FIX: Cast e.target to HTMLElement to access classList.
+            const journalItem = e.target as HTMLElement;
             if (journalItem.classList.contains('journal-item')) {
                  journalItem.classList.remove('dragging');
             }
@@ -1370,13 +1355,14 @@ document.addEventListener('DOMContentLoaded', () => {
         tradesTableBody?.addEventListener('click', e => {
             const deleteBtn = (e.target as HTMLElement).closest('.delete-trade-btn');
             if (deleteBtn) {
-                deleteTrade(deleteBtn.getAttribute('data-id')!);
+                deleteTrade(deleteBtn.getAttribute('data-id'));
             }
         });
         
         // --- Analytics View ---
         analyticsFilterBar?.addEventListener('change', renderAnalyticsView);
         analyticsResetFiltersBtn?.addEventListener('click', () => {
+            // FIX: Cast elements to HTMLSelectElement to access selectedIndex property.
             (document.getElementById('analytics-market-filter') as HTMLSelectElement).selectedIndex = 0;
             (document.getElementById('analytics-session-filter') as HTMLSelectElement).selectedIndex = 0;
             (document.getElementById('analytics-tag-filter') as HTMLSelectElement).selectedIndex = 0;
@@ -1411,14 +1397,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         document.querySelectorAll('[data-action="cancel"]').forEach(btn => btn.addEventListener('click', hideModals));
 
-        (document.getElementById('name-modal-form') as HTMLFormElement)?.addEventListener('submit', (e) => {
+        document.getElementById('name-modal-form')?.addEventListener('submit', (e) => {
             e.preventDefault();
+            // FIX: Cast to HTMLInputElement to access value property.
             const input = document.getElementById('name-modal-input') as HTMLInputElement;
             if (!modalState || !input.value) return;
             
             if (modalState.type === 'new-folder') {
                 addFolder(input.value);
             } else if (modalState.type === 'rename') {
+                // FIX: Cast to HTMLInputElement to access value property.
                 const newColor = (document.getElementById('name-modal-color') as HTMLInputElement).value;
                 updateItemName(modalState.targetType, modalState.targetId, input.value, newColor);
             }
@@ -1427,19 +1415,22 @@ document.addEventListener('DOMContentLoaded', () => {
         
         document.getElementById('delete-confirm-btn')?.addEventListener('click', () => {
             if (!modalState || modalState.type !== 'delete') return;
-            const folderDeleteOption = (document.querySelector('input[name="delete-option"]:checked') as HTMLInputElement)?.value as 'folder-only' | 'folder-and-pages';
+            // FIX: Cast to HTMLInputElement to access value property.
+            const folderDeleteOption = (document.querySelector('input[name="delete-option"]:checked') as HTMLInputElement)?.value;
             deleteItem(modalState.targetType, modalState.targetId, { folderDeleteOption });
             hideModals();
         });
 
         contextMenu?.addEventListener('click', (e) => {
+            // FIX: Cast e.target to HTMLElement to access dataset.
             const action = (e.target as HTMLElement).dataset.action;
             if (!action || !contextTarget) return;
 
             if (action === 'rename') {
                 modalState = { type: 'rename', targetType: contextTarget.type, targetId: contextTarget.id };
-                (document.getElementById('name-modal-title') as HTMLElement).textContent = `Edit ${contextTarget.type}`;
-                const colorWrapper = document.getElementById('name-modal-color-wrapper')!;
+                document.getElementById('name-modal-title').textContent = `Edit ${contextTarget.type}`;
+                const colorWrapper = document.getElementById('name-modal-color-wrapper');
+                // FIX: Cast elements to HTMLInputElement to access value property.
                 const colorInput = document.getElementById('name-modal-color') as HTMLInputElement;
                 const nameInput = document.getElementById('name-modal-input') as HTMLInputElement;
 
@@ -1457,7 +1448,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             } else if (action === 'delete') {
                 modalState = { type: 'delete', targetType: contextTarget.type, targetId: contextTarget.id };
-                (document.getElementById('delete-modal-title') as HTMLElement).textContent = `Delete ${contextTarget.type}`;
+                document.getElementById('delete-modal-title').textContent = `Delete ${contextTarget.type}`;
                 document.getElementById('delete-folder-options')?.classList.toggle('hidden', contextTarget.type !== 'folder');
                 showModal(deleteModal);
             }
@@ -1469,29 +1460,36 @@ document.addEventListener('DOMContentLoaded', () => {
                 settingsModalTabs.forEach(t => t.classList.remove('active'));
                 tab.classList.add('active');
                 settingsModalContents?.forEach(c => c.classList.remove('active'));
-                document.getElementById((tab as HTMLElement).dataset.tab!)?.classList.add('active');
+                // FIX: Cast tab to HTMLElement to access dataset.
+                document.getElementById((tab as HTMLElement).dataset.tab)?.classList.add('active');
             });
         });
 
         addMarketForm?.addEventListener('submit', (e) => {
             e.preventDefault();
+            // FIX: Cast elements to HTMLInputElement to access value property.
             const name = (document.getElementById('new-market-name') as HTMLInputElement).value;
             const color = (document.getElementById('new-market-color') as HTMLInputElement).value;
             addSettingItem('market', name, color);
+            // FIX: Cast e.target to HTMLFormElement to access reset method.
             (e.target as HTMLFormElement).reset();
         });
         addSessionForm?.addEventListener('submit', (e) => {
             e.preventDefault();
+            // FIX: Cast elements to HTMLInputElement to access value property.
             const name = (document.getElementById('new-session-name') as HTMLInputElement).value;
             const color = (document.getElementById('new-session-color') as HTMLInputElement).value;
             addSettingItem('session', name, color);
+            // FIX: Cast e.target to HTMLFormElement to access reset method.
             (e.target as HTMLFormElement).reset();
         });
         addTagForm?.addEventListener('submit', (e) => {
             e.preventDefault();
+            // FIX: Cast elements to HTMLInputElement to access value property.
             const name = (document.getElementById('new-tag-name') as HTMLInputElement).value;
             const color = (document.getElementById('new-tag-color') as HTMLInputElement).value;
             addSettingItem('tag', name, color);
+            // FIX: Cast e.target to HTMLFormElement to access reset method.
             (e.target as HTMLFormElement).reset();
         });
         
