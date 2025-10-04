@@ -618,7 +618,7 @@ document.addEventListener('DOMContentLoaded', () => {
             tag: (document.getElementById('add-tag') as HTMLSelectElement).value,
         };
 
-        if (!newTrade.date || !newTrade.pl) {
+        if (!newTrade.date || isNaN(newTrade.pl!)) {
             alert('Date and P/L are required.');
             return;
         }
@@ -1208,7 +1208,6 @@ document.addEventListener('DOMContentLoaded', () => {
         htmlElement.setAttribute('data-theme', savedTheme);
         
         renderSidebar();
-        renderCurrentView();
 
         // --- Global Listeners ---
         themeSwitcher?.addEventListener('click', () => {
@@ -1219,31 +1218,66 @@ document.addEventListener('DOMContentLoaded', () => {
 
         document.addEventListener('click', () => contextMenu?.classList.add('hidden'));
 
-        // --- Navigation ---
+        // --- Navigation & View Routing ---
+        const navigateToView = (viewName: string) => {
+            const validViews = ['dashboard', 'trades', 'analytics', 'calendar'];
+            const targetView = validViews.includes(viewName) ? viewName : 'dashboard';
+
+            // Update state
+            if (appState.activeView !== targetView) {
+                appState.activeView = targetView;
+                saveState();
+            }
+
+            // Update nav links UI
+            navLinks.forEach(link => {
+                if (link instanceof HTMLElement) {
+                    link.classList.toggle('active', link.dataset.view === targetView);
+                }
+            });
+
+            // Update view container visibility
+            views.forEach(view => {
+                view.classList.toggle('active', view.id === `${targetView}-view`);
+            });
+
+            // Render the content for the active view
+            renderCurrentView();
+        };
+
+        // Listen for hash changes (e.g., back/forward buttons, manual URL entry)
+        window.addEventListener('hashchange', () => {
+            const viewNameFromHash = window.location.hash.slice(1);
+            navigateToView(viewNameFromHash);
+        });
+
+        // Handle clicks on nav links to update the URL hash
+        navLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const viewName = (e.currentTarget as HTMLElement).dataset.view;
+                if (viewName) {
+                    // Setting the hash will trigger the 'hashchange' listener
+                    window.location.hash = viewName;
+                }
+            });
+        });
+
         sidebarToggle?.addEventListener('click', (e) => {
             e.stopPropagation();
             sidebar?.classList.toggle('hidden');
         });
 
-        navLinks.forEach(link => {
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                if (!(link instanceof HTMLElement)) return;
-                const viewName = link.dataset.view;
-                if (!viewName || viewName === appState.activeView) return;
-                appState.activeView = viewName;
-                saveState();
-                
-                navLinks.forEach(l => l.classList.remove('active'));
-                link.classList.add('active');
-
-                views.forEach(v => v.classList.remove('active'));
-                document.getElementById(`${viewName}-view`)?.classList.add('active');
-
-                renderCurrentView();
-            });
-        });
-        (document.querySelector(`.nav-link[data-view="${appState.activeView}"]`) as HTMLElement)?.click();
+        // Determine initial view on page load and trigger navigation
+        const initialViewName = window.location.hash.slice(1) || appState.activeView || 'dashboard';
+        // Set hash if it's not already correct (or if it's empty)
+        // This will trigger the hashchange listener for the initial render
+        if (window.location.hash.slice(1) !== initialViewName) {
+            window.location.hash = initialViewName;
+        } else {
+            // If the hash is already correct (e.g. on page refresh), manually trigger the navigation
+            navigateToView(initialViewName);
+        }
         
         // --- Sidebar Interactions ---
         newPageBtn?.addEventListener('click', addJournal);
