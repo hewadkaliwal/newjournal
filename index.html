@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Journal Dashboard</title>
+    <link rel="stylesheet" href="index.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="app-container">
+        <!-- Sidebar (Left Column) -->
+        <aside id="sidebar">
+            <div class="sidebar-header">
+                <h2>My Journal</h2>
+                <div class="sidebar-actions">
+                    <button id="new-folder-btn" class="icon-button" aria-label="New folder">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"></path><line x1="12" x2="12" y1="10" y2="16"></line><line x1="9" x2="15" y1="13" y2="13"></line></svg>
+                    </button>
+                    <button id="new-page-btn" class="icon-button" aria-label="Add new page">
+                       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" x2="12" y1="18" y2="12"></line><line x1="9" x2="15" y1="15" y2="15"></line></svg>
+                    </button>
+                </div>
+            </div>
+            <nav id="sidebar-nav" class="sidebar-nav">
+                <div id="folders-container"></div>
+                <div id="journals-container-root" class="drop-zone">
+                    <ul id="uncategorized-journals-list">
+                        <!-- Uncategorized journals will be rendered here -->
+                    </ul>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Content Area (Right Column) -->
+        <div id="content-area">
+            <!-- Navbar -->
+            <header id="navbar">
+                <div class="navbar-left">
+                    <button id="sidebar-toggle" class="icon-button" aria-label="Toggle sidebar">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                    </button>
+                    <nav class="main-nav">
+                        <a href="#dashboard" class="nav-link active" data-view="dashboard">Dashboard</a>
+                        <a href="#trades" class="nav-link" data-view="trades">Trades</a>
+                        <a href="#analytics" class="nav-link" data-view="analytics">Analytics</a>
+                        <a href="#calendar" class="nav-link" data-view="calendar">Calendar</a>
+                    </nav>
+                </div>
+                <div class="navbar-right">
+                    <button id="theme-switcher" class="icon-button" aria-label="Switch theme">
+                        <svg class="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                        <svg class="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                    </button>
+                    <button id="settings-button" class="icon-button" aria-label="Settings">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                    </button>
+                </div>
+            </header>
+            
+            <!-- Main View -->
+            <main id="main-view">
+                <div id="dashboard-view" class="view active">
+                    <h1 id="dashboard-title">Dashboard</h1>
+                    <div id="dashboard-empty-state" class="empty-state hidden">
+                        <p>No trades logged yet. Add your first trade to see your dashboard!</p>
+                    </div>
+                    <div id="dashboard-content">
+                        <div class="stats-grid">
+                            <div class="stat-card card"><div class="stat-title">Total P&L</div><div id="stat-total-pl" class="stat-value"></div></div>
+                            <div class="stat-card card"><div class="stat-title">Win Rate</div><div id="stat-win-rate" class="stat-value"></div></div>
+                            <div class="stat-card card"><div class="stat-title">Best Trade</div><div id="stat-best-trade" class="stat-value"></div></div>
+                            <div class="stat-card card"><div class="stat-title">Worst Trade</div><div id="stat-worst-trade" class="stat-value"></div></div>
+                        </div>
+                        <div class="dashboard-grid">
+                            <div class="card"><h3 class="chart-title">Weekly P&L</h3><div id="weekly-pnl-chart" class="chart-container"></div></div>
+                            <div class="card"><h3 class="chart-title">Long vs Short</h3><div id="long-short-stats" class="long-short-stats"></div></div>
+                        </div>
+                        <div class="card">
+                            <h3 class="chart-title">Recent Trades</h3>
+                            <div class="recent-trades-container">
+                                <table id="recent-trades-table">
+                                    <thead><tr><th>Date</th><th>Market</th><th>Direction</th><th>P/L</th></tr></thead>
+                                    <tbody id="recent-trades-tbody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="trades-view" class="view">
+                    <h1>Trades</h1>
+                    <div class="filter-bar card">
+                        <input type="search" id="trade-search-input" placeholder="Search Market or Comment...">
+                        <div class="date-range-filter">
+                            <input type="date" id="trade-date-start">
+                            <span>to</span>
+                            <input type="date" id="trade-date-end">
+                        </div>
+                        <button id="reset-filters-btn" class="btn-secondary">Reset</button>
+                    </div>
+                    <div class="trades-table-container card">
+                        <table id="trades-table">
+                            <thead>
+                                <tr>
+                                    <th>No.</th>
+                                    <th>Market</th>
+                                    <th>Date</th>
+                                    <th>Direction</th>
+                                    <th>Session</th>
+                                    <th>W&L</th>
+                                    <th>Risk (R)</th>
+                                    <th>P/L</th>
+                                    <th>Trade Type</th>
+                                    <th>Comment</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="trades-table-body">
+                                <!-- Trade rows will be dynamically inserted here -->
+                            </tbody>
+                            <tfoot id="add-trade-form">
+                                <tr>
+                                    <td></td>
+                                    <td><select id="add-market" required></select></td>
+                                    <td><input type="date" id="add-date" required></td>
+                                    <td>
+                                        <select id="add-direction" required>
+                                            <option>Long</option>
+                                            <option>Short</option>
+                                        </select>
+                                    </td>
+                                    <td><select id="add-session" required></select></td>
+                                    <td>
+                                        <select id="add-wl" required>
+                                            <option>Win</option>
+                                            <option>Loss</option>
+                                        </select>
+                                    </td>
+                                    <td><input type="number" id="add-r" step="0.1" placeholder="2.5"></td>
+                                    <td><input type="number" id="add-pl" step="0.01" placeholder="120.50" required></td>
+                                    <td><select id="add-tag"></select></td>
+                                    <td><input type="text" id="add-comment" placeholder="Comment..."></td>
+                                    <td>
+                                        <button type="button" id="save-trade-btn" class="icon-button" aria-label="Save new trade">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                        <div id="trades-empty-state" class="hidden">
+                            <p>No trades found for this journal. Add one using the form below!</p>
+                        </div>
+                    </div>
+                </div>
+                <div id="analytics-view" class="view">
+                    <h1 id="analytics-title">Analytics</h1>
+                     <div class="analytics-filter-bar card" id="analytics-filter-bar">
+                        <select id="analytics-market-filter"></select>
+                        <select id="analytics-session-filter"></select>
+                        <select id="analytics-tag-filter"></select>
+                        <select id="analytics-direction-filter">
+                            <option value="">All Directions</option>
+                            <option value="Long">Long</option>
+                            <option value="Short">Short</option>
+                        </select>
+                        <button id="analytics-reset-filters-btn" class="btn-secondary">Reset</button>
+                    </div>
+                    <div id="analytics-empty-state" class="empty-state hidden">
+                        <p>Not enough trade data to generate analytics. Log some trades first!</p>
+                    </div>
+                    <div id="analytics-content">
+                        <div class="metrics-grid card" id="metrics-grid"></div>
+                        <div class="card">
+                            <h3 class="chart-title">Equity Curve</h3>
+                            <div id="equity-curve-chart" class="chart-container"></div>
+                        </div>
+                        <div class="dashboard-grid">
+                            <div class="card"><h3 class="chart-title">P&L by Market</h3><div id="pnl-by-market-chart" class="chart-container"></div></div>
+                            <div class="card"><h3 class="chart-title">P&L by Session</h3><div id="pnl-by-session-chart" class="chart-container"></div></div>
+                        </div>
+                         <div class="breakdown-tables-grid">
+                            <div class="card"><h3 class="chart-title">By Market</h3><div id="market-breakdown-table" class="breakdown-table"></div></div>
+                            <div class="card"><h3 class="chart-title">By Session</h3><div id="session-breakdown-table" class="breakdown-table"></div></div>
+                            <div class="card"><h3 class="chart-title">By Trade Type</h3><div id="tag-breakdown-table" class="breakdown-table"></div></div>
+                        </div>
+                    </div>
+                </div>
+                <div id="calendar-view" class="view">
+                    <h1>Calendar</h1>
+                    <div id="calendar-header" class="card">
+                        <button id="calendar-prev-month" class="icon-button" aria-label="Previous month">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                        </button>
+                        <h2 id="calendar-month-year"></h2>
+                        <button id="calendar-next-month" class="icon-button" aria-label="Next month">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                        </button>
+                    </div>
+                    <div id="calendar-grid" class="card">
+                        <div class="calendar-weekday">Sun</div>
+                        <div class="calendar-weekday">Mon</div>
+                        <div class="calendar-weekday">Tue</div>
+                        <div class="calendar-weekday">Wed</div>
+                        <div class="calendar-weekday">Thu</div>
+                        <div class="calendar-weekday">Fri</div>
+                        <div class="calendar-weekday">Sat</div>
+                    </div>
+                    <div id="calendar-summary" class="card">
+                        <h3 class="chart-title">Monthly Summary</h3>
+                        <div id="calendar-summary-content">
+                             <!-- Summary will be rendered here -->
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Context Menu Template -->
+    <div id="context-menu" class="context-menu hidden">
+        <ul>
+            <li data-action="rename">Rename / Recolor</li>
+            <li data-action="delete" class="danger">Delete</li>
+        </ul>
+    </div>
+
+    <!-- Modal Templates -->
+    <div id="modal-overlay" class="modal-overlay hidden">
+        <!-- New Folder / Rename Modal -->
+        <div id="name-modal" class="modal hidden">
+            <h3 id="name-modal-title">Create New Folder</h3>
+            <form id="name-modal-form">
+                <div>
+                    <label for="name-modal-input">Name</label>
+                    <input type="text" id="name-modal-input" required>
+                </div>
+                <div id="name-modal-color-wrapper" class="hidden">
+                    <label for="name-modal-color">Color</label>
+                    <input type="color" id="name-modal-color">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" data-action="cancel">Cancel</button>
+                    <button type="submit" class="btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+        <!-- Delete Confirmation Modal -->
+        <div id="delete-modal" class="modal hidden">
+            <h3 id="delete-modal-title">Delete Item</h3>
+            <p id="delete-modal-text">Are you sure you want to delete this item? This action cannot be undone.</p>
+            <div id="delete-folder-options" class="hidden">
+                 <label><input type="radio" name="delete-option" value="folder-only" checked> Delete folder only (pages will become uncategorized)</label>
+                 <label><input type="radio" name="delete-option" value="folder-and-pages"> Delete folder and all pages within it</label>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary" data-action="cancel">Cancel</button>
+                <button type="button" id="delete-confirm-btn" class="btn-danger">Delete</button>
+            </div>
+        </div>
+        <!-- Settings Modal -->
+        <div id="settings-modal" class="modal hidden">
+            <div class="modal-tabs">
+                <button class="tab-link active" data-tab="settings-general">General</button>
+                <button class="tab-link" data-tab="settings-data">Data</button>
+            </div>
+            <div class="modal-content">
+                <div id="settings-general" class="tab-content active">
+                    <h3>Journal Customization</h3>
+                    <p>Manage options for markets, sessions, and trade types for this journal.</p>
+                    <div class="settings-group">
+                        <h4>Markets</h4>
+                        <div id="markets-list" class="settings-list"></div>
+                        <form id="add-market-form" class="settings-add-form">
+                            <input type="text" id="new-market-name" placeholder="e.g., AAPL" required>
+                            <input type="color" id="new-market-color" value="#3b82f6">
+                            <button type="submit" class="btn-primary">Add</button>
+                        </form>
+                    </div>
+                    <div class="settings-group">
+                        <h4>Sessions</h4>
+                        <div id="sessions-list" class="settings-list"></div>
+                        <form id="add-session-form" class="settings-add-form">
+                            <input type="text" id="new-session-name" placeholder="e.g., Tokyo" required>
+                            <input type="color" id="new-session-color" value="#16a34a">
+                            <button type="submit" class="btn-primary">Add</button>
+                        </form>
+                    </div>
+                    <div class="settings-group">
+                        <h4>Trade Types</h4>
+                        <div id="tags-list" class="settings-list"></div>
+                        <form id="add-tag-form" class="settings-add-form">
+                            <input type="text" id="new-tag-name" placeholder="e.g., Reversal" required>
+                            <input type="color" id="new-tag-color" value="#f97316">
+                            <button type="submit" class="btn-primary">Add</button>
+                        </form>
+                    </div>
+                </div>
+                <div id="settings-data" class="tab-content">
+                    <h3>Data Management</h3>
+                    <div class="settings-group">
+                        <h4>Export & Copy</h4>
+                        <p>Download or copy all trades from this journal.</p>
+                        <div class="data-actions">
+                            <button id="export-json-btn" class="btn-secondary">Export as JSON</button>
+                            <button id="export-csv-btn" class="btn-secondary">Export as CSV</button>
+                            <button id="export-pdf-btn" class="btn-secondary">Export as PDF</button>
+                            <button id="copy-csv-btn" class="btn-secondary">Copy as CSV</button>
+                        </div>
+                    </div>
+                    <div class="settings-group">
+                        <h4>Import Trades</h4>
+                        <p>Import trades from a JSON file. The file must match the application's data structure.</p>
+                        <input type="file" id="import-file-input" accept=".json">
+                    </div>
+                </div>
+            </div>
+             <div class="modal-actions">
+                <button type="button" class="btn-secondary" data-action="cancel">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="chart-tooltip" class="chart-tooltip"></div>
+
+    <script type="module" src="index.tsx"></script>
+</body>
+</html>
